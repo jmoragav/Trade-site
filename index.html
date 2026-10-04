@@ -65,7 +65,9 @@ h2{font-size:30px;letter-spacing:-.5px}
 .m img{width:72px;height:72px;object-fit:contain}
 .m button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:var(--bg);line-height:1}
 .empty{color:var(--mute);font-style:italic}
-.addrow{display:flex;gap:8px;margin-top:14px}
+.addrow{display:flex;gap:8px;margin-top:14px;align-items:center}
+.shinyopt{display:flex;gap:6px;align-items:center;font-weight:700;white-space:nowrap;cursor:pointer}
+.shinyopt input{width:18px;height:18px;accent-color:var(--accent)}
 .addrow button,.go{background:var(--accent);color:#2a0b14;border:0;border-radius:12px;font-weight:800;padding:10px 16px}
 .go{width:100%;padding:16px;font-size:17px;margin-top:6px}
 .msg{margin-top:12px;font-weight:700}
@@ -96,15 +98,14 @@ h2{font-size:30px;letter-spacing:-.5px}
     <div class="grid" id="lfGrid"></div>
   </section>
   <section id="trade" class="hide">
-    <h2>Trade offer</h2><p class="lead">Pick what you want, add what you give, and send it. The owner will get it by email.</p>
-    <div class="box two">
+    <h2>Trade offer</h2><p class="lead">Pick what you want, add what you give, and send it. The owner will get your offer and contact you.</p>
+    <div class="box">
       <div><label for="who">Your name / trainer tag (required)</label><input class="field" id="who"></div>
-      <div><label for="mail">Your email (optional, so they can reply)</label><input class="field" id="mail" type="email"></div>
     </div>
     <div class="two">
       <div class="side s-trade"><h3 id="ownerGives">You get</h3><div class="mini" id="cartOwner"></div></div>
       <div class="side s-lf"><h3>You give</h3><div class="mini" id="cartVisitor"></div>
-        <div class="addrow"><input class="field" id="manual" placeholder="Add any Pokémon by name or dex #"><button id="manualBtn">Add</button></div>
+        <div class="addrow"><input class="field" id="manual" placeholder="Add any Pokémon by name or dex #"><label class="shinyopt"><input type="checkbox" id="manualShiny"> Shiny</label><button id="manualBtn">Add</button></div>
         <div class="sub" id="manualErr"></div>
       </div>
     </div>
@@ -208,7 +209,7 @@ function renderInv(){
 }
 const renderLF = () => $('#lfGrid').innerHTML = LF.map(m => card(m, cartVisitor)).join('') || '<p class="empty">Nothing listed yet.</p>';
 function mini(list, which){
-  return list.map((m, i) => `<div class="m"><button data-rm="${which}${i}" aria-label="Remove ${m.name}">×</button><img src="${m.img}" alt=""><div>${m.name}</div><div class="sub">${m.form || ''}</div></div>`).join('') || '<span class="empty">Empty</span>';
+  return list.map((m, i) => `<div class="m"><button data-rm="${which}${i}" aria-label="Remove ${m.name}">×</button><img src="${m.img}" alt=""><div>${m.name}</div><div class="sub">${[m.form, m.shiny ? '✨ Shiny' : ''].filter(Boolean).join(' · ')}</div></div>`).join('') || '<span class="empty">Empty</span>';
 }
 function renderTrade(){
   $('#cartOwner').innerHTML = mini(cartOwner, 'o'); $('#cartVisitor').innerHTML = mini(cartVisitor, 'v');
@@ -234,35 +235,35 @@ document.addEventListener('click', e => {
 
 async function addManual(){
   const v = $('#manual').value.trim().toLowerCase(); if (!v) return;
-  $('#manualErr').textContent = '';
+  $('#manualErr').textContent = ''; const sh = $('#manualShiny').checked;
   try {
     const r = await fetch('https://pokeapi.co/api/v2/pokemon/' + encodeURIComponent(v)); if (!r.ok) throw 0;
     const p = await r.json();
-    cartVisitor.push({ id: 'man' + Date.now(), dex: p.id, name: p.name[0].toUpperCase() + p.name.slice(1), form: '', img: ART(p.id) });
-    $('#manual').value = ''; renderTrade();
+    cartVisitor.push({ id: 'man' + Date.now(), dex: p.id, name: p.name[0].toUpperCase() + p.name.slice(1), form: '', shiny: sh, img: ART(p.id, sh) });
+    $('#manual').value = ''; $('#manualShiny').checked = false; renderTrade();
   } catch (e) { $('#manualErr').textContent = 'Not found. Try the English name or the dex number.'; }
 }
 $('#manualBtn').onclick = addManual;
 $('#manual').addEventListener('keydown', e => e.key === 'Enter' && addManual());
 
 $('#send').onclick = async () => {
-  const msg = $('#msg'), btn = $('#send'), who = $('#who').value.trim(), mail = $('#mail').value.trim();
+  const msg = $('#msg'), btn = $('#send'), who = $('#who').value.trim();
   if (!who) { msg.textContent = 'Add your name or trainer tag first.'; $('#who').focus(); return; }
   if (!cartOwner.length && !cartVisitor.length) { msg.textContent = 'Add at least one Pokémon to the offer.'; return; }
-  const fmt = l => l.map(m => `- ${m.name}${m.form ? ' (' + m.form + ')' : ''} ${m.dex ? pad(m.dex) : ''}`).join('\n') || '- (nothing)';
+  const fmt = l => l.map(m => `- ${m.name}${m.form ? ' (' + m.form + ')' : ''}${m.shiny ? ' [SHINY]' : ''} ${m.dex ? pad(m.dex) : ''}`).join('\n') || '- (nothing)';
   const ticket = 'T' + Date.now().toString(36).toUpperCase().slice(-6);
-  const body = `NEW TRADE TICKET ${ticket}\n\nTrade for:\n${fmt(cartOwner)}\n\nOffering:\n${fmt(cartVisitor)}\n\nName: ${who}\nEmail: ${mail || 'not given'}\n\nMessage:\n${$('#note').value.trim() || '-'}`;
+  const body = `NEW TRADE TICKET ${ticket}\n\nTrade for:\n${fmt(cartOwner)}\n\nOffering:\n${fmt(cartVisitor)}\n\nName: ${who}\n\nMessage:\n${$('#note').value.trim() || '-'}`;
   const subject = `New trade ticket ${ticket} from ${who}`;
   const done = () => { msg.textContent = `Offer sent. Your ticket number is ${ticket}.`; cartOwner = []; cartVisitor = []; $('#note').value = ''; renderAll(); };
   btn.disabled = true; msg.textContent = 'Sending...';
   try {
     if (CONFIG.web3formsKey) {
       const r = await fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ access_key: CONFIG.web3formsKey, subject, from_name: who, name: who, email: mail || undefined, message: body }) });
+        body: JSON.stringify({ access_key: CONFIG.web3formsKey, subject, from_name: who, name: who, message: body }) });
       const j = await r.json(); if (!j.success) throw 0; done(); return;
     }
     if (CONFIG.formspree) {
-      const r = await fetch(CONFIG.formspree, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ subject, name: who, email: mail, message: body }) });
+      const r = await fetch(CONFIG.formspree, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ subject, name: who, message: body }) });
       if (!r.ok) throw 0; done(); return;
     }
   } catch (e) { msg.textContent = ''; }
