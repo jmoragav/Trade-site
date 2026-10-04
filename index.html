@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trading Dumpster</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#171226;--panel:#211a38;--panel2:#2a2147;--line:#3a2f5c;--text:#f3ecff;--mute:#9d92bd;--accent:#ff7a90;
+--trade:#4ade80;--maybe:#fbbf24;--booked:#a78bfa;--nft:#f87171;--r:18px}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.4 'DM Sans',system-ui,sans-serif;min-height:100vh}
+h1,h2,h3,.dis{font-family:'Bricolage Grotesque','DM Sans',sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{position:sticky;top:0;z-index:5;background:rgba(23,18,38,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 24px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;border-radius:50%;background:linear-gradient(180deg,var(--accent) 48%,#fff 52%);border:3px solid #fff;position:relative}
+.logo:after{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--bg);border:2px solid #fff}
+.brand h1{font-size:24px;font-weight:800;letter-spacing:-.5px}
+.live{font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:99px;padding:2px 10px}
+nav{display:flex;gap:6px;background:var(--panel);padding:5px;border-radius:99px;border:1px solid var(--line)}
+nav button{background:none;border:0;padding:8px 16px;border-radius:99px;font-weight:700;color:var(--mute)}
+nav button.on{background:var(--accent);color:#2a0b14}
+main{max-width:1280px;margin:0 auto;padding:24px}
+.tools{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.tools input,.tools select,.field{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.tools input{flex:1;min-width:180px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;align-items:center}
+.chip{background:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;display:flex;gap:7px;align-items:center;color:var(--mute);font-weight:500}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.chip.on{color:var(--text);border-color:var(--c);background:var(--panel)}
+.count{margin-left:auto;color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.stage{height:150px;display:grid;place-items:center;background:radial-gradient(circle at 50% 60%,color-mix(in srgb,var(--c) 28%,transparent),transparent 70%)}
+.stage img{width:118px;height:118px;object-fit:contain;filter:drop-shadow(0 6px 8px rgba(0,0,0,.4))}
+.dex{position:absolute;top:10px;left:12px;font-size:12px;color:var(--mute)}
+.qty{position:absolute;top:8px;right:10px;background:var(--panel2);border-radius:99px;padding:1px 9px;font-size:12px;font-weight:700}
+.info{padding:2px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
+.info h3{font-size:17px}
+.sub{font-size:12px;color:var(--mute);min-height:16px}
+.locs{display:flex;flex-wrap:wrap;gap:4px;min-height:22px}
+.lang{color:var(--accent);border-color:transparent}
+.loc{font-size:11px;font-weight:700;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+.tag{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:700;color:var(--c)}
+.tag i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.add{margin-top:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;font-weight:700}
+.add:hover:not(:disabled){border-color:var(--accent)}
+.add.in{background:var(--accent);color:#2a0b14;border-color:var(--accent)}
+.add:disabled{opacity:.4;cursor:not-allowed}
+.s-trade{--c:var(--trade)}.s-maybe{--c:var(--maybe)}.s-booked{--c:var(--booked)}.s-nft{--c:var(--nft)}.s-lf{--c:var(--accent)}
+.lead{color:var(--mute);margin:4px 0 20px;max-width:60ch}
+h2{font-size:30px;letter-spacing:-.5px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:18px}
+.box label{font-weight:700;display:block;margin-bottom:6px}
+.field{width:100%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.two{grid-template-columns:1fr}main{padding:14px}}
+.side{border:2px dashed var(--c);border-radius:var(--r);padding:16px;background:var(--panel);min-height:200px}
+.side h3{color:var(--c);margin-bottom:12px}
+.mini{display:flex;flex-wrap:wrap;gap:10px}
+.m{width:104px;background:var(--panel2);border-radius:14px;padding:8px;text-align:center;position:relative;font-size:13px;font-weight:700}
+.m img{width:72px;height:72px;object-fit:contain}
+.m button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:var(--bg);line-height:1}
+.empty{color:var(--mute);font-style:italic}
+.addrow{display:flex;gap:8px;margin-top:14px}
+.addrow button,.go{background:var(--accent);color:#2a0b14;border:0;border-radius:12px;font-weight:800;padding:10px 16px}
+.go{width:100%;padding:16px;font-size:17px;margin-top:6px}
+.msg{margin-top:12px;font-weight:700}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo"></div><h1 id="title">Trading Dumpster</h1></div>
+  <nav>
+    <button data-tab="inv" class="on">Inventory</button>
+    <button data-tab="lf">Looking for</button>
+    <button data-tab="trade" id="tradeBtn">Trade offer (0)</button>
+  </nav>
+</header>
+<main>
+  <section id="inv">
+    <div class="tools">
+      <input id="q" type="search" placeholder="Search name or dex number">
+      <select id="sort"><option value="dex">Sort: Dex #</option><option value="name">Sort: Name</option></select>
+      <select id="loc"></select><select id="origin"></select><select id="lang"></select>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="grid" id="invGrid"></div>
+  </section>
+  <section id="lf" class="hide">
+    <h2>Looking for</h2><p class="lead" id="lfNote"></p>
+    <div class="grid" id="lfGrid"></div>
+  </section>
+  <section id="trade" class="hide">
+    <h2>Trade offer</h2><p class="lead">Pick what you want, add what you give, and send it. The owner will get it by email.</p>
+    <div class="box two">
+      <div><label for="who">Your name / trainer tag (required)</label><input class="field" id="who"></div>
+      <div><label for="mail">Your email (optional, so they can reply)</label><input class="field" id="mail" type="email"></div>
+    </div>
+    <div class="two">
+      <div class="side s-trade"><h3 id="ownerGives">You get</h3><div class="mini" id="cartOwner"></div></div>
+      <div class="side s-lf"><h3>You give</h3><div class="mini" id="cartVisitor"></div>
+        <div class="addrow"><input class="field" id="manual" placeholder="Add any Pokémon by name or dex #"><button id="manualBtn">Add</button></div>
+        <div class="sub" id="manualErr"></div>
+      </div>
+    </div>
+    <div class="box" style="margin-top:18px"><label for="note">Message (optional)</label><textarea class="field" id="note" rows="3"></textarea></div>
+    <button class="go" id="send">Send trade offer</button>
+    <div class="msg" id="msg"></div>
+  </section>
+</main>
+
+<script>
+/* ===== CONFIG: edit this block ===== */
+const CONFIG = {
+  ownerName: "",   // shown before "Trading Dumpster", e.g. "Ash" gives "Ash Trading Dumpster"
+  inventoryCsv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQi_SMg5WQVsPgVNoMu29NdM402f-mekPcLEJttdDvuRe2fSG4D5c_kqthEIrSyx_zvilfUNQeRseo2/pub?gid=0&single=true&output=csv",   // Google Sheet > File > Share > Publish to web > Inventory tab > CSV link
+  lfCsv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQi_SMg5WQVsPgVNoMu29NdM402f-mekPcLEJttdDvuRe2fSG4D5c_kqthEIrSyx_zvilfUNQeRseo2/pub?gid=1818881718&single=true&output=csv",          // same, for the Looking For tab
+  lfNote: "Open to interesting offers.",
+  web3formsKey: "",   // free key from web3forms.com: sends offers to your inbox with no email app
+  formspree: ""       // alternative: https://formspree.io/f/xxxx
+};
+/* ==================================== */
+
+const DEMO_INV = `DEX,Name,Status,qty,loc,origin,form,shiny,sprite_id,image_url
+1,Bulbasaur,For trade,2,Home,GO,,,,
+4,Charmander,For trade,1,"Home, GO",Hatched,,yes,,
+25,Pikachu,Maybe,1,GO,Wild,,,,
+94,Gengar,Booked,1,Home,Trade,Premier Ball,,,
+133,Eevee,For trade,3,"GO, Home",Raid,,,,
+149,Dragonite,NFT,1,Home,Raid,,,,
+849,Toxtricity,For trade,1,GO,GO,Low Key,,10184,`;
+const DEMO_LF = `dex,name,form,sprite_id,note
+697,Tyrantrum,,,
+373,Salamence,,,
+849,Toxtricity,Amped,,
+448,Lucario,,,`;
+
+const $ = s => document.querySelector(s);
+const ART = (id, shiny) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${shiny ? 'shiny/' : ''}${id}.png`;
+const pad = n => '#' + String(n).padStart(4, '0');
+const STATUS = { 'for trade':'trade', 'maybe':'maybe', 'booked':'booked', 'nft':'nft' };
+const LABEL = { trade:'For trade', maybe:'Maybe', booked:'Booked', nft:'Not for trade' };
+
+function parseCSV(t){
+  const rows=[];let r=[],c='',q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){ if(ch=='"'){ if(t[i+1]=='"'){c+='"';i++} else q=false } else c+=ch }
+    else if(ch=='"') q=true;
+    else if(ch==','){r.push(c);c=''}
+    else if(ch=='\n'||ch=='\r'){ if(ch=='\r'&&t[i+1]=='\n')i++; r.push(c);c='';rows.push(r);r=[] }
+    else c+=ch }
+  if(c||r.length){r.push(c);rows.push(r)}
+  const h=rows.shift().map(x=>x.trim().toLowerCase());
+  return rows.filter(x=>x.some(v=>v.trim())).map(x=>Object.fromEntries(h.map((k,i)=>[k,(x[i]||'').trim()])));
+}
+async function load(url, demo){
+  if(!url) return parseCSV(demo);
+  const res = await fetch(url); if(!res.ok) throw new Error(res.status);
+  return parseCSV(await res.text());
+}
+const split = v => (v || '').split(/[,\/;&+|]|\band\b/i).map(x => x.trim()).filter(Boolean);
+const norm = (r, i, kind) => ({
+  id: kind + i, dex: parseInt(r.dex) || 0, name: (r.name || '').trim() || '?', form: /^regular$/i.test(r.form || '') ? '' : (r.form || '').trim(), raw: r.name || '',
+  status: kind === 'lf' ? 'lf' : (STATUS[(r.status || 'for trade').toLowerCase()] || 'trade'),
+  qty: +r.qty || 1, loc: split(r.loc).map(x => x.toUpperCase()),
+  origin: r.origin || '',
+  gender: split(r.gender).filter(g => /^(male|female)$/i.test(g)), lang: split(r.lang).map(x => x.toUpperCase()),
+  shiny: /^(y|yes|true|1|x)$/i.test(r.shiny || ''),
+  custom: !!(r.image_url || r.sprite_id),
+  img: r.image_url || ART(r.sprite_id || r.dex, /^(y|yes|true|1|x)$/i.test(r.shiny || ''))
+});
+
+let INV = [], LF = [], filt = { status: new Set(), loc: '', origin: '', lang: '' };
+let cartOwner = [], cartVisitor = [];
+try { const s = JSON.parse(localStorage.getItem('cart') || 'null'); if (s) { cartOwner = s.o || []; cartVisitor = s.v || []; } } catch (e) {}
+const saveCart = () => { try { localStorage.setItem('cart', JSON.stringify({ o: cartOwner, v: cartVisitor })); } catch (e) {} };
+
+function card(m, cart, other){
+  const inCart = cart.some(x => x.id === m.id);
+  const off = m.status === 'booked' || m.status === 'nft';
+  const label = m.status === 'lf' ? 'Offer this' : inCart ? 'Added' : off ? LABEL[m.status] : 'Add to offer';
+  return `<article class="card s-${m.status}">
+    <span class="dex">${m.dex ? pad(m.dex) : ''}</span>${m.qty > 1 ? `<span class="qty">×${m.qty}</span>` : ''}
+    <div class="stage"><img loading="lazy" src="${m.img}" alt="${m.name}" onerror="this.style.opacity=.25"></div>
+    <div class="info"><h3>${m.name}${m.gender.map(g => /^m/i.test(g) ? ' <span style="color:#7dd3fc">♂</span>' : ' <span style="color:#f9a8d4">♀</span>').join('')}</h3>
+      <div class="sub">${[m.form, m.origin].filter(Boolean).join(' · ')}</div>
+      <div class="locs">${m.loc.map(l => `<span class="loc">${l}</span>`).join('')}${m.lang.map(l => `<span class="loc lang">${l}</span>`).join('')}</div>
+      ${m.status !== 'lf' ? `<span class="tag"><i></i>${LABEL[m.status]}</span>` : ''}
+      <button class="add ${inCart ? 'in' : ''}" data-id="${m.id}" ${off && !inCart ? 'disabled' : ''}>${label}</button>
+    </div></article>`;
+}
+function renderInv(){
+  const q = $('#q').value.toLowerCase().trim();
+  let list = INV.filter(m =>
+    (!q || m.name.toLowerCase().includes(q) || String(m.dex).includes(q) || m.form.toLowerCase().includes(q) || m.lang.join(' ').toLowerCase().includes(q)) &&
+    (!filt.status.size || filt.status.has(m.status)) &&
+    (!filt.loc || m.loc.includes(filt.loc)) &&
+    (!filt.origin || m.origin === filt.origin) &&
+    (!filt.lang || m.lang.includes(filt.lang)));
+  list.sort($('#sort').value === 'name' ? (a, b) => a.name.localeCompare(b.name) : (a, b) => a.dex - b.dex);
+  $('#invGrid').innerHTML = list.map(m => card(m, cartOwner)).join('') || '<p class="empty">Nothing matches. Clear a filter to see more.</p>';
+  $('#count').textContent = list.length + ' shown';
+}
+const renderLF = () => $('#lfGrid').innerHTML = LF.map(m => card(m, cartVisitor)).join('') || '<p class="empty">Nothing listed yet.</p>';
+function mini(list, which){
+  return list.map((m, i) => `<div class="m"><button data-rm="${which}${i}" aria-label="Remove ${m.name}">×</button><img src="${m.img}" alt=""><div>${m.name}</div><div class="sub">${m.form || ''}</div></div>`).join('') || '<span class="empty">Empty</span>';
+}
+function renderTrade(){
+  $('#cartOwner').innerHTML = mini(cartOwner, 'o'); $('#cartVisitor').innerHTML = mini(cartVisitor, 'v');
+  $('#tradeBtn').textContent = `Trade offer (${cartOwner.length + cartVisitor.length})`;
+  saveCart();
+}
+const renderAll = () => { renderInv(); renderLF(); renderTrade(); };
+function toggle(list, m){ const i = list.findIndex(x => x.id === m.id); i > -1 ? list.splice(i, 1) : list.push(m); renderAll(); }
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]');
+  if (t) { document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b === t));
+    ['inv', 'lf', 'trade'].forEach(s => $('#' + s).classList.toggle('hide', s !== t.dataset.tab)); window.scrollTo(0, 0); return; }
+  const a = e.target.closest('.add');
+  if (a) { const id = a.dataset.id; const m = [...INV, ...LF].find(x => x.id === id); if (m) toggle(m.status === 'lf' ? cartVisitor : cartOwner, m); return; }
+  const rm = e.target.closest('[data-rm]');
+  if (rm) { const k = rm.dataset.rm; (k[0] === 'o' ? cartOwner : cartVisitor).splice(+k.slice(1), 1); renderAll(); return; }
+  const c = e.target.closest('.chip');
+  if (c) { const s = c.dataset.s; filt.status.has(s) ? filt.status.delete(s) : filt.status.add(s); c.classList.toggle('on'); renderInv(); }
+});
+['q', 'sort', 'loc', 'origin', 'lang'].forEach(id => $('#' + id).addEventListener('input', () => {
+  filt.loc = $('#loc').value; filt.origin = $('#origin').value; filt.lang = $('#lang').value; renderInv(); }));
+
+async function addManual(){
+  const v = $('#manual').value.trim().toLowerCase(); if (!v) return;
+  $('#manualErr').textContent = '';
+  try {
+    const r = await fetch('https://pokeapi.co/api/v2/pokemon/' + encodeURIComponent(v)); if (!r.ok) throw 0;
+    const p = await r.json();
+    cartVisitor.push({ id: 'man' + Date.now(), dex: p.id, name: p.name[0].toUpperCase() + p.name.slice(1), form: '', img: ART(p.id) });
+    $('#manual').value = ''; renderTrade();
+  } catch (e) { $('#manualErr').textContent = 'Not found. Try the English name or the dex number.'; }
+}
+$('#manualBtn').onclick = addManual;
+$('#manual').addEventListener('keydown', e => e.key === 'Enter' && addManual());
+
+$('#send').onclick = async () => {
+  const msg = $('#msg'), btn = $('#send'), who = $('#who').value.trim(), mail = $('#mail').value.trim();
+  if (!who) { msg.textContent = 'Add your name or trainer tag first.'; $('#who').focus(); return; }
+  if (!cartOwner.length && !cartVisitor.length) { msg.textContent = 'Add at least one Pokémon to the offer.'; return; }
+  const fmt = l => l.map(m => `- ${m.name}${m.form ? ' (' + m.form + ')' : ''} ${m.dex ? pad(m.dex) : ''}`).join('\n') || '- (nothing)';
+  const ticket = 'T' + Date.now().toString(36).toUpperCase().slice(-6);
+  const body = `NEW TRADE TICKET ${ticket}\n\nTrade for:\n${fmt(cartOwner)}\n\nOffering:\n${fmt(cartVisitor)}\n\nName: ${who}\nEmail: ${mail || 'not given'}\n\nMessage:\n${$('#note').value.trim() || '-'}`;
+  const subject = `New trade ticket ${ticket} from ${who}`;
+  const done = () => { msg.textContent = `Offer sent. Your ticket number is ${ticket}.`; cartOwner = []; cartVisitor = []; $('#note').value = ''; renderAll(); };
+  btn.disabled = true; msg.textContent = 'Sending...';
+  try {
+    if (CONFIG.web3formsKey) {
+      const r = await fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ access_key: CONFIG.web3formsKey, subject, from_name: who, name: who, email: mail || undefined, message: body }) });
+      const j = await r.json(); if (!j.success) throw 0; done(); return;
+    }
+    if (CONFIG.formspree) {
+      const r = await fetch(CONFIG.formspree, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ subject, name: who, email: mail, message: body }) });
+      if (!r.ok) throw 0; done(); return;
+    }
+  } catch (e) { msg.textContent = ''; }
+  btn.disabled = false;
+  if (!CONFIG.web3formsKey && !CONFIG.formspree) msg.textContent = 'Sending is not set up yet. Please contact the owner directly.';
+  else msg.textContent = 'Could not send the offer. Please try again in a moment.';
+};
+
+const cache = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const titleCase = n => n.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+async function enrich(){
+  const all = [...INV, ...LF];
+  try { /* clean English names from the dex number */
+    let names = cache('dexnames');
+    if (!names) { const j = await (await fetch('https://pokeapi.co/api/v2/pokemon-species?limit=2000')).json();
+      names = {}; j.results.forEach(r => names[r.url.split('/').filter(Boolean).pop()] = r.name); cache('dexnames', names); }
+    all.forEach(m => { if (names[m.dex]) m.name = titleCase(names[m.dex]); });
+    renderAll();
+  } catch (e) {}
+  /* regional forms: find the right artwork automatically */
+  const fid = cache('formids') || {};
+  const reg = m => (/alola|hisui|galar|paldea/i.exec(m.form + ' ' + m.raw) || [])[0]?.toLowerCase();
+  for (const m of all) {
+    const r = reg(m); if (!r || !m.dex || m.custom) continue;
+    const key = m.dex + r;
+    try {
+      if (!fid[key]) { const sp = await (await fetch('https://pokeapi.co/api/v2/pokemon-species/' + m.dex)).json();
+        const v = sp.varieties.find(x => x.pokemon.name.includes('-' + r)); if (!v) continue;
+        fid[key] = v.pokemon.url.split('/').filter(Boolean).pop(); cache('formids', fid); }
+      m.img = ART(fid[key], m.shiny);
+    } catch (e) {}
+  }
+  renderAll();
+}
+(async function init(){
+  const shop = (CONFIG.ownerName + ' Trading Dumpster').trim(); document.title = shop; $('#title').textContent = shop;
+  $('#lfNote').textContent = CONFIG.lfNote; $('#ownerGives').textContent = CONFIG.ownerName ? 'You get from ' + CONFIG.ownerName : 'You get';
+  try {
+    INV = (await load(CONFIG.inventoryCsv, DEMO_INV)).filter(r => (r.name || '').trim() || parseInt(r.dex)).map((r, i) => norm(r, i, 'inv'));
+    LF = (CONFIG.lfCsv || !CONFIG.inventoryCsv ? await load(CONFIG.lfCsv, DEMO_LF) : []).filter(r => (r.name || '').trim() || parseInt(r.dex)).map((r, i) => norm(r, i, 'lf'));
+  } catch (e) { $('#invGrid').innerHTML = '<p class="empty">Could not load the inventory. Try refreshing in a minute.</p>'; }
+  $('#loc').innerHTML = '<option value="">Location: all</option>' + [...new Set(INV.flatMap(m => m.loc))].sort().map(v => `<option>${v}</option>`).join('');
+  const og = [...new Set(INV.map(m => m.origin).filter(Boolean))].sort();
+  $('#origin').innerHTML = '<option value="">Origin: all</option>' + og.map(v => `<option>${v}</option>`).join(''); $('#origin').hidden = !og.length;
+  const lg = [...new Set(INV.flatMap(m => m.lang))].sort();
+  $('#lang').innerHTML = '<option value="">Language: all</option>' + lg.map(v => `<option>${v}</option>`).join(''); $('#lang').hidden = !lg.length;
+  $('#chips').innerHTML = Object.entries(LABEL).map(([k, v]) => `<button class="chip s-${k}" data-s="${k}" style="--c:var(--${k})"><i></i>${v}</button>`).join('') + '<span class="count" id="count"></span>';
+  renderAll();
+  enrich();
+})();
+</script>
+</body>
+</html>
