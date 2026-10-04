@@ -66,6 +66,13 @@ h2{font-size:30px;letter-spacing:-.5px}
 .m button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:var(--bg);line-height:1}
 .empty{color:var(--mute);font-style:italic}
 .addrow{display:flex;gap:8px;margin-top:14px;align-items:center}
+.ac{position:relative;flex:1;min-width:0}
+.sug{position:absolute;left:0;right:0;top:100%;margin-top:6px;list-style:none;padding:6px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;z-index:20;box-shadow:0 14px 30px rgba(0,0,0,.5)}
+.sug li{display:flex;align-items:center;gap:10px;padding:4px 10px;border-radius:10px;cursor:pointer;font-weight:700}
+.sug li img{width:36px;height:36px;image-rendering:pixelated}
+.sug li small{margin-left:auto;color:var(--mute);font-weight:500}
+.sug li.on,.sug li:hover{background:var(--accent);color:#2a0b14}
+.sug li.on small,.sug li:hover small{color:#2a0b14}
 .shinyopt{display:flex;gap:6px;align-items:center;font-weight:700;white-space:nowrap;cursor:pointer}
 .shinyopt input{width:18px;height:18px;accent-color:var(--accent)}
 .addrow button,.go{background:var(--accent);color:#2a0b14;border:0;border-radius:12px;font-weight:800;padding:10px 16px}
@@ -105,7 +112,7 @@ h2{font-size:30px;letter-spacing:-.5px}
     <div class="two">
       <div class="side s-trade"><h3 id="ownerGives">You get</h3><div class="mini" id="cartOwner"></div></div>
       <div class="side s-lf"><h3>You give</h3><div class="mini" id="cartVisitor"></div>
-        <div class="addrow"><input class="field" id="manual" list="dexlist" autocomplete="off" placeholder="Start typing a name or dex #"><datalist id="dexlist"></datalist><label class="shinyopt"><input type="checkbox" id="manualShiny"> Shiny</label><button id="manualBtn">Add</button></div>
+        <div class="addrow"><div class="ac"><input class="field" id="manual" autocomplete="off" placeholder="Start typing a name or dex #"><ul class="sug hide" id="sug"></ul></div><label class="shinyopt"><input type="checkbox" id="manualShiny"> Shiny</label><button id="manualBtn">Add</button></div>
         <div class="sub" id="manualErr"></div>
       </div>
     </div>
@@ -237,8 +244,18 @@ let NAMES = {}, REV = {};
 function fillList(){
   const ids = Object.keys(NAMES).sort((a, b) => a - b);
   REV = {}; ids.forEach(i => REV[NAMES[i]] = i);
-  $('#dexlist').innerHTML = ids.map(i => `<option value="${titleCase(NAMES[i])}"></option>`).join('');
 }
+let ACL = [], ACI = -1;
+const sugHide = () => { $('#sug').classList.add('hide'); ACL = []; ACI = -1; };
+function suggest(){
+  const q = $('#manual').value.trim().toLowerCase().replace(/[\s.']+/g, '-');
+  if (q.length < 3 || /^\d+$/.test(q)) return sugHide();
+  const ids = Object.keys(NAMES);
+  ACL = [...ids.filter(i => NAMES[i].startsWith(q)), ...ids.filter(i => !NAMES[i].startsWith(q) && NAMES[i].includes(q))].slice(0, 6); ACI = -1;
+  $('#sug').innerHTML = ACL.map(i => `<li data-i="${i}"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i}.png" alt="">${titleCase(NAMES[i])}<small>${pad(i)}</small></li>`).join('');
+  $('#sug').classList.toggle('hide', !ACL.length);
+}
+function pick(i){ $('#manual').value = titleCase(NAMES[i]); sugHide(); $('#manual').focus(); }
 async function addManual(){
   const raw = $('#manual').value.trim().toLowerCase(); if (!raw) return;
   const key = raw.replace(/[\s.']+/g, '-').replace(/-+$/, ''), v = REV[key] || REV[raw] || key;
@@ -247,11 +264,21 @@ async function addManual(){
     const r = await fetch('https://pokeapi.co/api/v2/pokemon/' + encodeURIComponent(v)); if (!r.ok) throw 0;
     const p = await r.json();
     cartVisitor.push({ id: 'man' + Date.now(), dex: p.id, name: titleCase(NAMES[p.id] || p.name), form: '', shiny: sh, img: ART(p.id, sh) });
-    $('#manual').value = ''; $('#manualShiny').checked = false; renderTrade();
+    $('#manual').value = ''; $('#manualShiny').checked = false; sugHide(); renderTrade();
   } catch (e) { $('#manualErr').textContent = 'Not found. Try the English name or the dex number.'; }
 }
 $('#manualBtn').onclick = addManual;
-$('#manual').addEventListener('keydown', e => e.key === 'Enter' && addManual());
+$('#manual').addEventListener('input', suggest);
+$('#manual').addEventListener('keydown', e => {
+  const open = ACL.length > 0;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { if (!open) return; e.preventDefault();
+    ACI = (ACI + (e.key === 'ArrowDown' ? 1 : -1) + ACL.length) % ACL.length;
+    [...$('#sug').children].forEach((li, k) => li.classList.toggle('on', k === ACI)); }
+  else if (e.key === 'Enter') { e.preventDefault(); open && ACI >= 0 ? pick(ACL[ACI]) : addManual(); }
+  else if (e.key === 'Escape') sugHide();
+});
+$('#sug').addEventListener('click', e => { const li = e.target.closest('li'); if (li) pick(li.dataset.i); });
+document.addEventListener('click', e => { if (!e.target.closest('.ac')) sugHide(); });
 
 $('#send').onclick = async () => {
   const msg = $('#msg'), btn = $('#send'), who = $('#who').value.trim();
