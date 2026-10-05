@@ -41,6 +41,7 @@ main{max-width:1280px;margin:0 auto;padding:24px}
 .info{padding:2px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
 .info h3{font-size:17px}
 .sub{font-size:12px;color:var(--mute);min-height:16px}
+.note{font-size:12px;font-style:italic;opacity:.85;background:var(--panel2);border-radius:8px;padding:5px 8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .locs{display:flex;flex-wrap:wrap;gap:4px;min-height:22px}
 .lang{color:var(--accent);border-color:transparent}
 .loc{font-size:11px;font-weight:700;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
@@ -125,10 +126,11 @@ h2{font-size:30px;letter-spacing:-.5px}
 <script>
 /* ===== CONFIG: edit this block ===== */
 const CONFIG = {
-  ownerName: "Joac0ck",   // shown before "Trading Dumpster", e.g. "Ash" gives "Ash Trading Dumpster"
+  ownerName: "Joacock",   // shown before "Trading Dumpster", e.g. "Ash" gives "Ash Trading Dumpster"
   inventoryCsv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQi_SMg5WQVsPgVNoMu29NdM402f-mekPcLEJttdDvuRe2fSG4D5c_kqthEIrSyx_zvilfUNQeRseo2/pub?gid=0&single=true&output=csv",   // Google Sheet > File > Share > Publish to web > Inventory tab > CSV link
   lfCsv: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQi_SMg5WQVsPgVNoMu29NdM402f-mekPcLEJttdDvuRe2fSG4D5c_kqthEIrSyx_zvilfUNQeRseo2/pub?gid=1818881718&single=true&output=csv",          // same, for the Looking For tab
   lfNote: "Open to interesting offers.",
+  discordEndpoint: "https://trade-discord.pg7937936.workers.dev/", //
   web3formsKey: "a6ebdc60-78b1-45ed-a976-fefdda60aed5",   // free key from web3forms.com: sends offers to your inbox with no email app
   formspree: ""       // alternative: https://formspree.io/f/xxxx
 };
@@ -177,6 +179,7 @@ const norm = (r, i, kind) => ({
   status: kind === 'lf' ? 'lf' : (STATUS[(r.status || 'for trade').toLowerCase()] || 'trade'),
   qty: +r.qty || 1, loc: split(r.loc).map(x => x.toUpperCase()),
   origin: r.origin || '',
+  note: (r.comments || r.comment || r.note || '').trim(),
   gender: split(r.gender).filter(g => /^(male|female)$/i.test(g)), lang: split(r.lang).map(x => x.toUpperCase()),
   shiny: /^(y|yes|true|1|x)$/i.test(r.shiny || ''),
   custom: !!(r.image_url || r.sprite_id),
@@ -197,6 +200,7 @@ function card(m, cart, other){
     <div class="stage"><img loading="lazy" src="${m.img}" alt="${m.name}" onerror="this.style.opacity=.25"></div>
     <div class="info"><h3>${m.name}${m.gender.map(g => /^m/i.test(g) ? ' <span style="color:#7dd3fc">♂</span>' : ' <span style="color:#f9a8d4">♀</span>').join('')}</h3>
       <div class="sub">${[m.form, m.origin].filter(Boolean).join(' · ')}</div>
+      ${m.note ? `<div class="note" title="${m.note.replace(/"/g, '&quot;')}">${m.note.replace(/</g, '&lt;')}</div>` : ''}
       <div class="locs">${m.loc.map(l => `<span class="loc">${l}</span>`).join('')}${m.lang.map(l => `<span class="loc lang">${l}</span>`).join('')}</div>
       ${m.status !== 'lf' ? `<span class="tag"><i></i>${LABEL[m.status]}</span>` : ''}
       <button class="add ${inCart ? 'in' : ''}" data-id="${m.id}" ${off && !inCart ? 'disabled' : ''}>${label}</button>
@@ -291,6 +295,12 @@ $('#send').onclick = async () => {
   const done = () => { msg.textContent = `Offer sent. Your ticket number is ${ticket}.`; cartOwner = []; cartVisitor = []; $('#note').value = ''; renderAll(); };
   btn.disabled = true; msg.textContent = 'Sending...';
   try {
+    if (CONFIG.discordEndpoint) {
+      const slim = l => l.map(m => ({ name: m.name, form: m.form || '', shiny: !!m.shiny, dex: m.dex || 0 }));
+      const r = await fetch(CONFIG.discordEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket, name: who, get: slim(cartOwner), give: slim(cartVisitor), message: $('#note').value.trim(), site: location.origin }) });
+      if (!r.ok) throw 0; done(); return;
+    }
     if (CONFIG.web3formsKey) {
       const r = await fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ access_key: CONFIG.web3formsKey, subject, from_name: who, name: who, message: body }) });
@@ -302,7 +312,7 @@ $('#send').onclick = async () => {
     }
   } catch (e) { msg.textContent = ''; }
   btn.disabled = false;
-  if (!CONFIG.web3formsKey && !CONFIG.formspree) msg.textContent = 'Sending is not set up yet. Please contact the owner directly.';
+  if (!CONFIG.discordEndpoint && !CONFIG.web3formsKey && !CONFIG.formspree) msg.textContent = 'Sending is not set up yet. Please contact the owner directly.';
   else msg.textContent = 'Could not send the offer. Please try again in a moment.';
 };
 
